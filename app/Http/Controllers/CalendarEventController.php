@@ -87,7 +87,7 @@ class CalendarEventController extends Controller
             'id' => $calendarEvent->id,
             'activity_template_id' => $calendarEvent->activity_template_id,
             'title' => $calendarEvent->title,
-            'event_date' => $calendarEvent->event_date->date::format('Y-m-d'),
+            'event_date' => $calendarEvent->event_date->format('Y-m-d'),
             'notes' => $calendarEvent->notes,
             'employee_ids' => $calendarEvent->employees->pluck('id')->values(),
         ]);

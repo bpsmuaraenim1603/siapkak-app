@@ -16,7 +16,7 @@ class Employee extends Model
     {
         return $this->belongsToMany(
             CalendarEvent::class,
-            'calendar_event_employee'
+            'calendar_event_employees'
         )->withPivot('sort_order')->withTimestamps();
     }
 }

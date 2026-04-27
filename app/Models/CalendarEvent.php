@@ -32,7 +32,7 @@ class CalendarEvent extends Model
     {
         return $this->belongsToMany(
             Employee::class,
-            'calendar_event_employee'
+            'calendar_event_employees'
         )->withPivot('sort_order')->withTimestamps()
             ->orderByPivot('sort_order');
     }

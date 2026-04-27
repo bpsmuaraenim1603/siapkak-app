@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CalendarEventEmployee extends Model
 {
-    protected $table = 'calendar_event_employee';
+    protected $table = 'calendar_event_employees';
 
     protected $fillable = [
         'calendar_event_id',
