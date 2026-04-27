@@ -14,13 +14,20 @@ class CalendarEvent extends Model
         'event_date',
         'start_datetime',
         'end_datetime',
+        'send_at',
         'notes',
+        'whatsapp_status',
+        'whatsapp_sent_at',
+        'whatsapp_message_snapshot',
+        'whatsapp_error_message',
     ];
 
     protected $casts = [
         'event_date' => 'date',
         'start_datetime' => 'datetime',
         'end_datetime' => 'datetime',
+        'send_at' => 'datetime',
+        'whatsapp_sent_at' => 'datetime',
     ];
 
     public function activityTemplate(): BelongsTo
@@ -30,10 +37,9 @@ class CalendarEvent extends Model
 
     public function employees(): BelongsToMany
     {
-        return $this->belongsToMany(
-            Employee::class,
-            'calendar_event_employees'
-        )->withPivot('sort_order')->withTimestamps()
+        return $this->belongsToMany(Employee::class, 'calendar_event_employees')
+            ->withPivot('sort_order')
+            ->withTimestamps()
             ->orderByPivot('sort_order');
     }
 }
