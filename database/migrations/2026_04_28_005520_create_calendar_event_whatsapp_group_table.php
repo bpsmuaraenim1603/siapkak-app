@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('calendar_event_whatsapp_group', function (Blueprint $table) {
             $table->id();
             $table->foreignId('calendar_event_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('whatsapp_group_id')->constrained('whats_app_groups')->cascadeOnDelete();
+            $table->foreignId('whatsapp_group_id')->constrained('whatsapp_groups')->cascadeOnDelete();
             $table->timestamps();
 
             $table->unique(['calendar_event_id', 'whatsapp_group_id'], 'cewg_event_group_unique');

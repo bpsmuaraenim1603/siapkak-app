@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendScheduledWhatsAppJob;
 use App\Models\ActivityTemplate;
 use App\Models\CalendarEvent;
 use App\Models\Employee;
 use App\Models\WhatsAppGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Jobs\SendScheduledWhatsAppJob;
 
 class CalendarEventController extends Controller
 {
@@ -23,7 +23,7 @@ class CalendarEventController extends Controller
 
     public function events()
     {
-        $events = CalendarEvent::with(['activityTemplate', 'employees'])
+        $events = CalendarEvent::with(['activityTemplate', 'employees', 'whatsappGroups'])
             ->orderBy('event_date')
             ->get()
             ->map(function ($event) {
@@ -32,13 +32,28 @@ class CalendarEventController extends Controller
                     'title' => $event->title,
                     'start' => $event->event_date ? $event->event_date->format('Y-m-d') : null,
                     'allDay' => true,
+                    'backgroundColor' => match ($event->whatsapp_status) {
+                        'sent' => '#16a34a',
+                        'failed' => '#dc2626',
+                        'queued' => '#eab308',
+                        default => '#2563eb',
+                    },
+                    'borderColor' => match ($event->whatsapp_status) {
+                        'sent' => '#16a34a',
+                        'failed' => '#dc2626',
+                        'queued' => '#eab308',
+                        default => '#2563eb',
+                    },
                     'extendedProps' => [
                         'activity_template_id' => $event->activity_template_id,
                         'notes' => $event->notes,
-                        'employee_ids' => $event->employees->pluck('id')->map(fn($id) => (int) $id)->values()->all(),
+                        'employee_ids' => $event->employees->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
                         'employee_names' => $event->employees->pluck('name')->values()->all(),
+                        'whatsapp_group_ids' => $event->whatsappGroups->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
+                        'whatsapp_group_names' => $event->whatsappGroups->pluck('name')->values()->all(),
                         'start_datetime' => $event->start_datetime ? $event->start_datetime->format('Y-m-d\TH:i') : null,
                         'send_at' => $event->send_at ? $event->send_at->format('Y-m-d\TH:i') : null,
+                        'send_mode' => $event->send_mode,
                         'whatsapp_status' => $event->whatsapp_status,
                         'whatsapp_message_snapshot' => $event->whatsapp_message_snapshot,
                         'whatsapp_error_message' => $event->whatsapp_error_message,
@@ -60,12 +75,12 @@ class CalendarEventController extends Controller
             'event_date' => ['required', 'date'],
             'start_time' => ['nullable', 'date_format:H:i'],
             'send_at' => ['nullable', 'date'],
+            'send_mode' => ['required', 'in:employees,groups,both'],
             'notes' => ['nullable', 'string'],
             'employee_ids' => ['nullable', 'array'],
             'employee_ids.*' => ['exists:employees,id'],
-            'send_mode' => ['required', 'in:employees,groups,both'],
             'whatsapp_group_ids' => ['nullable', 'array'],
-            'whatsapp_group_ids.*' => ['exists:whats_app_groups,id'],
+            'whatsapp_group_ids.*' => ['exists:whatsapp_groups,id'],
         ]);
 
         $template = ActivityTemplate::findOrFail($validated['activity_template_id']);
@@ -83,10 +98,10 @@ class CalendarEventController extends Controller
                 'event_date' => $validated['event_date'],
                 'start_datetime' => $startDatetime,
                 'send_at' => $validated['send_at'] ?? null,
+                'send_mode' => $validated['send_mode'],
                 'notes' => $validated['notes'] ?? null,
                 'whatsapp_status' => 'pending',
                 'whatsapp_message_snapshot' => $template->whatsapp_message,
-                'send_mode' => $validated['send_mode'],
             ]);
 
             $employeeSyncData = [];
@@ -116,15 +131,12 @@ class CalendarEventController extends Controller
             'event_date' => $calendarEvent->event_date ? $calendarEvent->event_date->format('Y-m-d') : null,
             'start_time' => $calendarEvent->start_datetime ? $calendarEvent->start_datetime->format('H:i') : null,
             'send_at' => $calendarEvent->send_at ? $calendarEvent->send_at->format('Y-m-d\TH:i') : null,
+            'send_mode' => $calendarEvent->send_mode,
             'notes' => $calendarEvent->notes,
             'whatsapp_status' => $calendarEvent->whatsapp_status,
-            'employee_ids' => $calendarEvent->employees->pluck('id')->map(fn($id) => (int) $id)->values()->all(),
-            'send_mode' => $calendarEvent->send_mode,
-            'whatsapp_group_ids' => $calendarEvent->whatsappGroups
-                ->pluck('id')
-                ->map(fn($id) => (int) $id)
-                ->values()
-                ->all(),
+            'whatsapp_error_message' => $calendarEvent->whatsapp_error_message,
+            'employee_ids' => $calendarEvent->employees->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
+            'whatsapp_group_ids' => $calendarEvent->whatsappGroups->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
         ]);
     }
 
@@ -136,9 +148,12 @@ class CalendarEventController extends Controller
             'event_date' => ['required', 'date'],
             'start_time' => ['nullable', 'date_format:H:i'],
             'send_at' => ['nullable', 'date'],
+            'send_mode' => ['required', 'in:employees,groups,both'],
             'notes' => ['nullable', 'string'],
             'employee_ids' => ['nullable', 'array'],
             'employee_ids.*' => ['exists:employees,id'],
+            'whatsapp_group_ids' => ['nullable', 'array'],
+            'whatsapp_group_ids.*' => ['exists:whatsapp_groups,id'],
         ]);
 
         $template = ActivityTemplate::findOrFail($validated['activity_template_id']);
@@ -156,10 +171,11 @@ class CalendarEventController extends Controller
                 'event_date' => $validated['event_date'],
                 'start_datetime' => $startDatetime,
                 'send_at' => $validated['send_at'] ?? null,
+                'send_mode' => $validated['send_mode'],
                 'notes' => $validated['notes'] ?? null,
                 'whatsapp_status' => 'pending',
                 'whatsapp_message_snapshot' => $template->whatsapp_message,
-                'send_mode' => $validated['send_mode'],
+                'whatsapp_error_message' => null,
             ]);
 
             $employeeSyncData = [];
@@ -184,8 +200,16 @@ class CalendarEventController extends Controller
             'event_date' => ['required', 'date'],
         ]);
 
+        $startDatetime = $calendarEvent->start_datetime;
+
+        if ($startDatetime) {
+            $timePart = $startDatetime->format('H:i:s');
+            $startDatetime = $validated['event_date'] . ' ' . $timePart;
+        }
+
         $calendarEvent->update([
             'event_date' => $validated['event_date'],
+            'start_datetime' => $startDatetime,
         ]);
 
         return response()->json([
@@ -196,6 +220,7 @@ class CalendarEventController extends Controller
     public function destroy(CalendarEvent $calendarEvent)
     {
         $calendarEvent->employees()->detach();
+        $calendarEvent->whatsappGroups()->detach();
         $calendarEvent->delete();
 
         return response()->json([
@@ -205,6 +230,11 @@ class CalendarEventController extends Controller
 
     public function sendWhatsapp(CalendarEvent $calendarEvent)
     {
+        $calendarEvent->update([
+            'whatsapp_status' => 'queued',
+            'whatsapp_error_message' => null,
+        ]);
+
         SendScheduledWhatsAppJob::dispatch($calendarEvent->id);
 
         return response()->json([

@@ -32,7 +32,7 @@ class WhatsAppGroupController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'group_id' => ['required', 'string', 'max:255', 'unique:whats_app_groups,group_id'],
+            'group_id' => ['required', 'string', 'max:255', 'unique:whatsapp_groups,group_id'],
         ]);
 
         WhatsAppGroup::create($validated);
@@ -56,7 +56,7 @@ class WhatsAppGroupController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'group_id' => ['required', 'string', 'max:255', 'unique:whats_app_groups,group_id,' . $whatsappGroup->id],
+            'group_id' => ['required', 'string', 'max:255', 'unique:whatsapp_groups,group_id,' . $whatsappGroup->id],
         ]);
 
         $whatsappGroup->update($validated);

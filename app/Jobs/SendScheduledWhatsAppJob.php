@@ -7,7 +7,6 @@ use App\Services\WhatsApp\FonnteService;
 use App\Support\WhatsAppMessageBuilder;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class SendScheduledWhatsAppJob implements ShouldQueue
@@ -23,7 +22,8 @@ class SendScheduledWhatsAppJob implements ShouldQueue
 
     public function handle(FonnteService $fonnte): void
     {
-        $event = CalendarEvent::with(['activityTemplate', 'employees', 'whatsappGroups'])->find($this->calendarEventId);
+        $event = CalendarEvent::with(['activityTemplate', 'employees', 'whatsappGroups'])
+            ->find($this->calendarEventId);
 
         if (!$event) {
             return;
@@ -39,7 +39,7 @@ class SendScheduledWhatsAppJob implements ShouldQueue
         if (in_array($event->send_mode, ['employees', 'both'], true)) {
             $employeeTargets = $event->employees
                 ->pluck('phone')
-                ->map(fn($phone) => WhatsAppMessageBuilder::normalizePhone($phone))
+                ->map(fn ($phone) => WhatsAppMessageBuilder::normalizePhone($phone))
                 ->filter()
                 ->unique()
                 ->values();
@@ -51,16 +51,6 @@ class SendScheduledWhatsAppJob implements ShouldQueue
                 ->filter()
                 ->unique()
                 ->values();
-        }
-
-        $phones = $employeeTargets->merge($groupTargets);
-
-        if ($phones->isEmpty()) {
-            $event->update([
-                'whatsapp_status' => 'failed',
-                'whatsapp_error_message' => 'Tidak ada nomor HP pegawai yang valid.',
-            ]);
-            return;
         }
 
         $targets = $employeeTargets
@@ -86,7 +76,7 @@ class SendScheduledWhatsAppJob implements ShouldQueue
 
         try {
             $result = $fonnte->sendText(
-                $phones->implode(','),
+                $targets->implode(','),
                 $message
             );
 

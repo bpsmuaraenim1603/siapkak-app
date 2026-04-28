@@ -30,6 +30,9 @@ if (calendarEl && csrfMeta) {
     const sendWhatsappBtn = document.getElementById("sendWhatsappBtn");
     const sendModeInput = document.getElementById("send_mode");
     const whatsappGroupIdsInput = document.getElementById("whatsapp_group_ids");
+    const whatsappErrorMessageInput = document.getElementById(
+        "whatsapp_error_message",
+    );
 
     if (externalEventsEl) {
         new Draggable(externalEventsEl, {
@@ -133,6 +136,8 @@ if (calendarEl && csrfMeta) {
         whatsappStatusInput.value = "pending";
         sendWhatsappBtn.classList.add("hidden");
         sendModeInput.value = "employees";
+        whatsappStatusInput.value = "pending";
+        whatsappErrorMessageInput.value = "";
 
         Array.from(whatsappGroupIdsInput.options).forEach((option) => {
             option.selected = false;
@@ -177,6 +182,8 @@ if (calendarEl && csrfMeta) {
             whatsappStatusInput.value = data.whatsapp_status ?? "pending";
             notesInput.value = data.notes ?? "";
             sendModeInput.value = data.send_mode ?? "employees";
+            whatsappStatusInput.value = data.whatsapp_status ?? "pending";
+            whatsappErrorMessageInput.value = data.whatsapp_error_message ?? "";
 
             Array.from(whatsappGroupIdsInput.options).forEach((option) => {
                 option.selected = data.whatsapp_group_ids.includes(
