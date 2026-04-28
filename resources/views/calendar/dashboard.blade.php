@@ -144,6 +144,30 @@
                     </div>
 
                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Mode Kirim</label>
+                        <select id="send_mode" name="send_mode"
+                            class="w-full border border-gray-300 rounded-md px-3 py-2">
+                            <option value="employees">Ke Pegawai</option>
+                            <option value="groups">Ke Grup</option>
+                            <option value="both">Ke Pegawai dan Grup</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Grup WhatsApp</label>
+                        <select id="whatsapp_group_ids" name="whatsapp_group_ids[]"
+                            class="w-full border border-gray-300 rounded-md px-3 py-2" multiple size="4">
+                            @foreach ($whatsappGroups as $group)
+                                <option value="{{ $group->id }}">
+                                    {{ $group->name }} - {{ $group->group_id }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="text-sm text-gray-500 mt-1">Tekan Ctrl atau Cmd untuk memilih lebih dari satu grup.
+                        </p>
+                    </div>
+
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Pegawai</label>
                         <select id="employee_ids" name="employee_ids[]"
                             class="w-full border border-gray-300 rounded-md px-3 py-2" multiple size="5">

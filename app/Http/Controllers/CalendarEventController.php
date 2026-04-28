@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityTemplate;
 use App\Models\CalendarEvent;
 use App\Models\Employee;
+use App\Models\WhatsAppGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Jobs\SendScheduledWhatsAppJob;
@@ -15,8 +16,9 @@ class CalendarEventController extends Controller
     {
         $activityTemplates = ActivityTemplate::orderBy('name')->get();
         $employees = Employee::orderBy('name')->get();
+        $whatsappGroups = WhatsAppGroup::orderBy('name')->get();
 
-        return view('calendar.dashboard', compact('activityTemplates', 'employees'));
+        return view('calendar.dashboard', compact('activityTemplates', 'employees', 'whatsappGroups'));
     }
 
     public function events()
@@ -61,6 +63,9 @@ class CalendarEventController extends Controller
             'notes' => ['nullable', 'string'],
             'employee_ids' => ['nullable', 'array'],
             'employee_ids.*' => ['exists:employees,id'],
+            'send_mode' => ['required', 'in:employees,groups,both'],
+            'whatsapp_group_ids' => ['nullable', 'array'],
+            'whatsapp_group_ids.*' => ['exists:whats_app_groups,id'],
         ]);
 
         $template = ActivityTemplate::findOrFail($validated['activity_template_id']);
@@ -81,6 +86,7 @@ class CalendarEventController extends Controller
                 'notes' => $validated['notes'] ?? null,
                 'whatsapp_status' => 'pending',
                 'whatsapp_message_snapshot' => $template->whatsapp_message,
+                'send_mode' => $validated['send_mode'],
             ]);
 
             $employeeSyncData = [];
@@ -91,6 +97,7 @@ class CalendarEventController extends Controller
             }
 
             $event->employees()->sync($employeeSyncData);
+            $event->whatsappGroups()->sync($validated['whatsapp_group_ids'] ?? []);
         });
 
         return response()->json([
@@ -100,7 +107,7 @@ class CalendarEventController extends Controller
 
     public function show(CalendarEvent $calendarEvent)
     {
-        $calendarEvent->load(['activityTemplate', 'employees']);
+        $calendarEvent->load(['activityTemplate', 'employees', 'whatsappGroups']);
 
         return response()->json([
             'id' => $calendarEvent->id,
@@ -112,6 +119,12 @@ class CalendarEventController extends Controller
             'notes' => $calendarEvent->notes,
             'whatsapp_status' => $calendarEvent->whatsapp_status,
             'employee_ids' => $calendarEvent->employees->pluck('id')->map(fn($id) => (int) $id)->values()->all(),
+            'send_mode' => $calendarEvent->send_mode,
+            'whatsapp_group_ids' => $calendarEvent->whatsappGroups
+                ->pluck('id')
+                ->map(fn($id) => (int) $id)
+                ->values()
+                ->all(),
         ]);
     }
 
@@ -146,6 +159,7 @@ class CalendarEventController extends Controller
                 'notes' => $validated['notes'] ?? null,
                 'whatsapp_status' => 'pending',
                 'whatsapp_message_snapshot' => $template->whatsapp_message,
+                'send_mode' => $validated['send_mode'],
             ]);
 
             $employeeSyncData = [];
@@ -156,6 +170,7 @@ class CalendarEventController extends Controller
             }
 
             $calendarEvent->employees()->sync($employeeSyncData);
+            $calendarEvent->whatsappGroups()->sync($validated['whatsapp_group_ids'] ?? []);
         });
 
         return response()->json([

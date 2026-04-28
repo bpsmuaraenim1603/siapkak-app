@@ -23,7 +23,7 @@ class SendScheduledWhatsAppJob implements ShouldQueue
 
     public function handle(FonnteService $fonnte): void
     {
-        $event = CalendarEvent::with(['activityTemplate', 'employees'])->find($this->calendarEventId);
+        $event = CalendarEvent::with(['activityTemplate', 'employees', 'whatsappGroups'])->find($this->calendarEventId);
 
         if (!$event) {
             return;
@@ -33,17 +33,46 @@ class SendScheduledWhatsAppJob implements ShouldQueue
             return;
         }
 
-        $phones = $event->employees
-            ->pluck('phone')
-            ->map(fn ($phone) => WhatsAppMessageBuilder::normalizePhone($phone))
-            ->filter()
-            ->unique()
-            ->values();
+        $employeeTargets = collect();
+        $groupTargets = collect();
+
+        if (in_array($event->send_mode, ['employees', 'both'], true)) {
+            $employeeTargets = $event->employees
+                ->pluck('phone')
+                ->map(fn($phone) => WhatsAppMessageBuilder::normalizePhone($phone))
+                ->filter()
+                ->unique()
+                ->values();
+        }
+
+        if (in_array($event->send_mode, ['groups', 'both'], true)) {
+            $groupTargets = $event->whatsappGroups
+                ->pluck('group_id')
+                ->filter()
+                ->unique()
+                ->values();
+        }
+
+        $phones = $employeeTargets->merge($groupTargets);
 
         if ($phones->isEmpty()) {
             $event->update([
                 'whatsapp_status' => 'failed',
                 'whatsapp_error_message' => 'Tidak ada nomor HP pegawai yang valid.',
+            ]);
+            return;
+        }
+
+        $targets = $employeeTargets
+            ->merge($groupTargets)
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($targets->isEmpty()) {
+            $event->update([
+                'whatsapp_status' => 'failed',
+                'whatsapp_error_message' => 'Tidak ada target WhatsApp yang valid.',
             ]);
             return;
         }
