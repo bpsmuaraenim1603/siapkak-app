@@ -48,7 +48,9 @@ class CalendarEvent extends Model
     {
         return $this->belongsToMany(
             WhatsAppGroup::class,
-            'calendar_event_whatsapp_group'
+            'calendar_event_whatsapp_group',
+            'calendar_event_id',
+            'whatsapp_group_id'
         )->withTimestamps();
     }
 }
