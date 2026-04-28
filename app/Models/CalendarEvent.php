@@ -15,6 +15,7 @@ class CalendarEvent extends Model
         'start_datetime',
         'end_datetime',
         'send_at',
+        'send_mode',
         'notes',
         'whatsapp_status',
         'whatsapp_sent_at',
@@ -41,5 +42,13 @@ class CalendarEvent extends Model
             ->withPivot('sort_order')
             ->withTimestamps()
             ->orderByPivot('sort_order');
+    }
+
+    public function whatsappGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            WhatsAppGroup::class,
+            'calendar_event_whatsapp_group'
+        )->withTimestamps();
     }
 }
